@@ -1,0 +1,252 @@
+﻿<!DOCTYPE html>
+<html lang="cs">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dispečink ČS Dolní Libina</title>
+
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="theme-color" content="#121212">
+
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: #121212;
+            color: #ffffff;
+            font-family: Arial, sans-serif;
+            width: 100vw;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            overflow-x: hidden;
+        }
+
+        .dashboard-container {
+            position: relative;
+            width: 100%;
+        }
+
+        .dashboard-image {
+            width: 100%;
+            height: auto;
+            display: block;
+        }
+
+        /* Výchozí styly pro POČÍTAČ (zvětšený font) */
+        .data-overlay {
+            position: absolute;
+            font-weight: bold;
+            font-size: clamp(36px, 3.2vw, 80px);
+            color: #ff3333;
+            background-color: transparent;
+            padding: 0;
+            border: none;
+            white-space: nowrap;
+        }
+
+        #varovani-hladina {
+            top: 2%;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: clamp(28px, 3vw, 60px);
+            color: #ffffff;
+            padding: 8px 20px;
+            border-radius: 4px;
+            display: none;
+            z-index: 10;
+        }
+
+        .alarm-bg {
+            display: block !important;
+            background-color: #ff0000 !important;
+            color: #ffffff !important;
+        }
+
+        /* Pozice prvků na POČÍTAČI */
+        #cas {
+            top: 57%;
+            left: 2%;
+            color: #008000;
+            font-size: clamp(24px, 2.2vw, 56px);
+            line-height: 1.25;
+        }
+
+        .cas-maly {
+            display: block;
+            font-size: clamp(13px, 1.1vw, 26px);
+            font-weight: normal;
+        }
+
+        #cas-stari {
+            font-weight: bold;
+        }
+
+        #vodomer {
+            top: 62%;
+            left: 26%;
+        }
+
+        #tlak {
+            top: 52%;
+            left: 51%;
+        }
+
+        #hladina {
+            top: 55%;
+            left: 91%;
+        }
+
+        /* Úpravy pro MOBIL (do 600px šířky) */
+        @media (max-width: 600px) {
+            .data-overlay {
+                font-size: clamp(16px, 4vw, 24px);
+            }
+
+            #varovani-hladina {
+                font-size: clamp(18px, 4.5vw, 28px);
+            }
+
+            #cas {
+                top: 57%;
+                left: 2%;
+                font-size: clamp(12px, 3vw, 18px);
+            }
+
+            .cas-maly {
+                font-size: clamp(8px, 2.1vw, 12px);
+            }
+
+            #vodomer {
+                left: 17%;
+            }
+
+            #tlak {
+                left: 40%;
+            }
+
+            #hladina {
+                left: 80%;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="dashboard-container">
+        <img src="Gemini_Generated_Image_pqhv4xpqhv4xpqhv.jfif" alt="Dispečink ČS Dolní Libina" class="dashboard-image">
+
+        <div id="varovani-hladina" class="data-overlay">POZOR NÍZKÁ HLADINA</div>
+        <div id="cas" class="data-overlay">
+            <span class="cas-maly">aktualizováno v</span>
+            <span id="cas-hodnota">Načítání...</span>
+            <span id="cas-stari" class="cas-maly"></span>
+        </div>
+        <div id="vodomer" class="data-overlay">Načítání...</div>
+        <div id="tlak" class="data-overlay">Načítání...</div>
+        <div id="hladina" class="data-overlay">Načítání...</div>
+    </div>
+
+    <script>
+        // Skrytí lišty / Fullscreen na kliknutí
+        document.addEventListener('click', function () {
+            if (!document.fullscreenElement) {
+                document.documentElement.requestFullscreen().catch(err => {
+                    console.log("Fullscreen nelze spustit: ", err);
+                });
+            }
+        }, { once: true });
+
+        const binId = '6ae4e41aac6210605a5f86ea';
+        const masterKey = '$2a$10$oDkugEQvTT8T0zGs2XHtMuU5ggMZ1mgfgwqnLwPzIqkAw.Ih6EgWK';
+        const url = `https://api.jsonbin.io/v3/b/${binId}/latest`;
+
+        let posledniCasText = null;
+
+        function spoctiStari(casStr) {
+            if (!casStr || typeof casStr !== 'string') return '';
+            const casti = casStr.trim().split(/[:.]/);
+            if (casti.length < 2) return '';
+
+            const h = parseInt(casti[0], 10);
+            const m = parseInt(casti[1], 10);
+            if (isNaN(h) || isNaN(m)) return '';
+
+            const ted = new Date();
+            const tedMin = ted.getHours() * 60 + ted.getMinutes();
+            const zaznamMin = h * 60 + m;
+
+            let rozdil = tedMin - zaznamMin;
+            if (rozdil < 0) rozdil += 1440;
+
+            if (rozdil === 0) return 'právě teď';
+            if (rozdil === 1) return 'před 1 minutou';
+            return `před ${rozdil} minutami`;
+        }
+
+        function aktualizovatZobrazeniCasu() {
+            const hodnotaEl = document.getElementById('cas-hodnota');
+            const stariEl = document.getElementById('cas-stari');
+
+            if (posledniCasText) {
+                const upravenyCas = posledniCasText.replace('.', ':');
+                hodnotaEl.innerText = `${upravenyCas} h`;
+                stariEl.innerText = spoctiStari(posledniCasText);
+            }
+        }
+
+        function aktualizovatVse() {
+            fetch(url, {
+                headers: {
+                    'X-Master-Key': masterKey
+                }
+            })
+                .then(response => {
+                    if (!response.ok) throw new Error('Chyba při stahování dat');
+                    return response.json();
+                })
+                .then(result => {
+                    const data = result.record;
+
+                    if (data) {
+                        if (data.cas !== undefined) {
+                            posledniCasText = String(data.cas);
+                            aktualizovatZobrazeniCasu();
+                        } else {
+                            document.getElementById('cas-hodnota').innerText = '-';
+                            document.getElementById('cas-stari').innerText = '';
+                        }
+
+                        document.getElementById('vodomer').innerText = data.vodomer !== undefined ? data.vodomer : '-';
+                        document.getElementById('tlak').innerText = data.tlak !== undefined ? data.tlak : '-';
+                        document.getElementById('hladina').innerText = data.hladina !== undefined ? data.hladina : '-';
+
+                        const varovaniEl = document.getElementById('varovani-hladina');
+                        if (data.hladina !== "OK") {
+                            varovaniEl.classList.add('alarm-bg');
+                        } else {
+                            varovaniEl.classList.remove('alarm-bg');
+                        }
+                    }
+                })
+                .catch(error => {
+                    console.error('Chyba:', error);
+                    posledniCasText = null;
+                    document.getElementById('cas-hodnota').innerText = 'Chyba dat';
+                    document.getElementById('cas-stari').innerText = '';
+                    document.getElementById('vodomer').innerText = 'Chyba dat';
+                    document.getElementById('tlak').innerText = 'Chyba dat';
+                    document.getElementById('hladina').innerText = 'Chyba dat';
+                });
+        }
+
+        aktualizovatVse();
+        setInterval(aktualizovatVse, 5000);
+        setInterval(aktualizovatZobrazeniCasu, 10000);
+    </script>
+
+</body>
+</html>
