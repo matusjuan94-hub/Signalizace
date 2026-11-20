@@ -186,9 +186,8 @@
             }
         }, { once: true });
 
-        const binId = '6ae4e41aac6210605a5f86ea';
-        const masterKey = '$2a$10$oDkugEQvTT8T0zGs2XHtMuU5ggMZ1mgfgwqnLwPzIqkAw.Ih6EgWK';
-        const url = `https://api.jsonbin.io/v3/b/${binId}/latest`;
+        const scriptBaseUrl = 'https://script.google.com/macros/s/AKfycbz6mRV2Zdbe-Xw1fSM2zpokq7xTN8ksjN7qomSI1g6FrWHaNSoFSbXgcEBtFVcU7DIO/exec';
+        const url = `${scriptBaseUrl}?akce=cteni`;
 
         let posledniCasText = null;
 
@@ -225,31 +224,26 @@
         }
 
         function aktualizovatVse() {
-            fetch(url, {
-                headers: {
-                    'X-Master-Key': masterKey
-                }
-            })
+            fetch(`${url}&_t=${Date.now()}`, { cache: 'no-store' })
                 .then(response => {
                     if (!response.ok) throw new Error('Chyba při stahování dat');
                     return response.json();
                 })
-                .then(result => {
-                    const data = result.record;
-
-                    if (data) {
-                        if (data.cas !== undefined) {
+                .then(data => {
+                    if (data && data.ok !== false) {
+                        if (data.cas !== undefined && data.cas !== '') {
                             posledniCasText = String(data.cas);
                             aktualizovatZobrazeniCasu();
                         } else {
+                            posledniCasText = null;
                             document.getElementById('cas-hodnota').innerText = '-';
                             document.getElementById('cas-stari').innerText = '';
                         }
 
-                        document.getElementById('teplota').innerText = data.teplota !== undefined ? `${data.teplota}°C` : '-';
-                        document.getElementById('vodomer').innerText = data.vodomer !== undefined ? data.vodomer : '-';
-                        document.getElementById('tlak').innerText = data.tlak !== undefined ? data.tlak : '-';
-                        document.getElementById('hladina').innerText = data.hladina !== undefined ? data.hladina : '-';
+                        document.getElementById('teplota').innerText = (data.teplota !== undefined && data.teplota !== '') ? `${data.teplota}°C` : '-';
+                        document.getElementById('vodomer').innerText = (data.vodomer !== undefined && data.vodomer !== '') ? data.vodomer : '-';
+                        document.getElementById('tlak').innerText = (data.tlak !== undefined && data.tlak !== '') ? data.tlak : '-';
+                        document.getElementById('hladina').innerText = (data.hladina !== undefined && data.hladina !== '') ? data.hladina : '-';
 
                         const varovaniEl = document.getElementById('varovani-hladina');
                         if (data.hladina !== "OK") {
