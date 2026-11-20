@@ -95,6 +95,13 @@
             font-weight: bold;
         }
 
+        #teplota {
+            top: 25.5%;
+            left: 29.5%;
+            transform: translateX(-50%);
+            font-size: clamp(25px, 2.2vw, 50px);
+        }
+
         #vodomer {
             top: 62%;
             left: 26%;
@@ -131,6 +138,13 @@
                 font-size: clamp(8px, 2.1vw, 12px);
             }
 
+            #teplota {
+                top: 25.5%;
+                left: 29.5%;
+                transform: translateX(-50%);
+                font-size: clamp(14px, 3.2vw, 19px);
+            }
+
             #vodomer {
                 left: 17%;
             }
@@ -156,6 +170,7 @@
             <span id="cas-hodnota">Načítání...</span>
             <span id="cas-stari" class="cas-maly"></span>
         </div>
+        <div id="teplota" class="data-overlay">Načítání...</div>
         <div id="vodomer" class="data-overlay">Načítání...</div>
         <div id="tlak" class="data-overlay">Načítání...</div>
         <div id="hladina" class="data-overlay">Načítání...</div>
@@ -231,6 +246,7 @@
                             document.getElementById('cas-stari').innerText = '';
                         }
 
+                        document.getElementById('teplota').innerText = data.teplota !== undefined ? `${data.teplota}°C` : '-';
                         document.getElementById('vodomer').innerText = data.vodomer !== undefined ? data.vodomer : '-';
                         document.getElementById('tlak').innerText = data.tlak !== undefined ? data.tlak : '-';
                         document.getElementById('hladina').innerText = data.hladina !== undefined ? data.hladina : '-';
@@ -248,6 +264,7 @@
                     posledniCasText = null;
                     document.getElementById('cas-hodnota').innerText = 'Chyba dat';
                     document.getElementById('cas-stari').innerText = '';
+                    document.getElementById('teplota').innerText = 'Chyba dat';
                     document.getElementById('vodomer').innerText = 'Chyba dat';
                     document.getElementById('tlak').innerText = 'Chyba dat';
                     document.getElementById('hladina').innerText = 'Chyba dat';
